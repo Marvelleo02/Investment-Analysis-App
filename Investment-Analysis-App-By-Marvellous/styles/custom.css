@@ -1,0 +1,63 @@
+/* Custom styles for the Investment Predictor app */
+.stApp {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.stButton>button {
+    width: 100%;
+}
+
+/* Make metric cards stand out */
+[data-testid="stMetricValue"] {
+    font-size: 24px;
+    color: #1f77b4;
+    transition: all 0.3s ease;
+}
+
+/* Style expanders */
+.streamlit-expanderHeader {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* Style tables */
+.dataframe {
+    font-size: 14px;
+}
+
+/* Style plotly charts */
+.js-plotly-plot {
+    margin-bottom: 2rem;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Carousel animations */
+.carousel-slide {
+    transition: all 0.5s ease-in-out;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1f77b4;
+    transition: all 0.3s ease;
+}
+
+.metric-delta {
+    transition: all 0.3s ease;
+}
+
+.metric-delta-up {
+    color: #2ecc71;
+}
+
+.metric-delta-down {
+    color: #e74c3c;
+}
+
+
+/* Enhance metric cards */
+[data-testid="stMetricDelta"] {
+    transition: all 0.3s ease;
+}

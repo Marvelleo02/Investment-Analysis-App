@@ -1,0 +1,739 @@
+# Install required packages
+!pip install streamlit>=1.24.0 pandas>=2.0.0 numpy>=1.24.0 plotly>=5.13.0 scikit-learn>=1.2.2 nltk>=3.8.1 transformers torch openpyxl xlrd
+
+# Create project structure
+!mkdir -p utils
+
+# Create necessary files
+%%writefile utils/data_processor.py
+import pandas as pd
+import numpy as np
+from typing import Tuple, Optional
+import io
+import streamlit as st
+
+class DataProcessor:
+    @staticmethod
+    def load_data(file) -> Optional[pd.DataFrame]:
+        try:
+            # Get file content in chunks to handle large files
+            chunk_size = 1024 * 1024  # 1MB chunks
+            chunks = []
+
+            while True:
+                chunk = file.read(chunk_size)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+
+            file_content = b''.join(chunks)
+            file.seek(0)  # Reset file pointer
+
+            if file.name.endswith('.csv'):
+                # Try different encodings with error handling
+                encodings = ['utf-8', 'iso-8859-1', 'cp1252']
+                for encoding in encodings:
+                    try:
+                        df = pd.read_csv(
+                            io.BytesIO(file_content),
+                            encoding=encoding,
+                            on_bad_lines='skip'  # Skip problematic rows
+                        )
+                        st.success(f"✅ File loaded successfully using {encoding} encoding")
+                        return df
+                    except UnicodeDecodeError:
+                        continue
+                    except Exception as e:
+                        st.warning(f"⚠️ Warning with {encoding}: {str(e)}")
+                        continue
+                st.error("❌ Could not load the CSV file with any supported encoding")
+                return None
+
+            elif file.name.endswith(('.xls', '.xlsx')):
+                try:
+                    df = pd.read_excel(
+                        io.BytesIO(file_content),
+                        engine='openpyxl'
+                    )
+                    st.success("✅ Excel file loaded successfully")
+                    return df
+                except Exception as e:
+                    st.warning(f"⚠️ Error with openpyxl: {str(e)}")
+                    try:
+                        # Fallback to xlrd for older Excel files
+                        df = pd.read_excel(
+                            io.BytesIO(file_content),
+                            engine='xlrd'
+                        )
+                        st.success("✅ Excel file loaded successfully using xlrd")
+                        return df
+                    except Exception as e:
+                        st.error(f"❌ Excel reading error: {str(e)}")
+                        return None
+            else:
+                st.error("❌ Unsupported file format. Please upload a CSV or Excel file.")
+                return None
+
+        except Exception as e:
+            st.error(f"❌ File reading error: {str(e)}")
+            st.info("💡 Try checking the file format and size, then upload again.")
+            return None
+
+    @staticmethod
+    def clean_data(df: pd.DataFrame) -> pd.DataFrame:
+        try:
+            # Remove duplicate rows
+            initial_rows = len(df)
+            df = df.drop_duplicates()
+            if len(df) < initial_rows:
+                st.info(f"ℹ️ Removed {initial_rows - len(df)} duplicate rows")
+
+            # Handle missing values
+            numeric_columns = df.select_dtypes(include=[np.number]).columns
+            categorical_columns = df.select_dtypes(include=['object']).columns
+
+            # Fill numeric columns with median
+            df[numeric_columns] = df[numeric_columns].fillna(df[numeric_columns].median())
+
+            # Fill categorical columns with mode
+            for col in categorical_columns:
+                df[col] = df[col].fillna(df[col].mode().iloc[0] if not df[col].mode().empty else 'Unknown')
+
+            # Convert date columns to datetime
+            for col in df.columns:
+                if df[col].dtype == 'object':
+                    try:
+                        df[col] = pd.to_datetime(df[col])
+                        st.info(f"ℹ️ Converted {col} to datetime format")
+                    except:
+                        continue
+
+            return df
+
+        except Exception as e:
+            st.error(f"❌ Error during data cleaning: {str(e)}")
+            return df
+
+    @staticmethod
+    def get_summary_stats(df: pd.DataFrame) -> Tuple[dict, dict]:
+        try:
+            numeric_stats = df.describe().to_dict()
+
+            categorical_stats = {}
+            for col in df.select_dtypes(include=['object']).columns:
+                categorical_stats[col] = df[col].value_counts().to_dict()
+
+            return numeric_stats, categorical_stats
+        except Exception as e:
+            st.error(f"❌ Error generating summary statistics: {str(e)}")
+            return {}, {}
+
+    @staticmethod
+    def identify_time_columns(df: pd.DataFrame) -> list:
+        datetime_columns = []
+        for col in df.columns:
+            try:
+                pd.to_datetime(df[col])
+                datetime_columns.append(col)
+            except:
+                continue
+        return datetime_columns
+
+%%writefile utils/ai_engine.py
+import pandas as pd
+import numpy as np
+from transformers import pipeline
+
+class AIEngine:
+    def __init__(self):
+        # Initialize lightweight models
+        self.sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+
+    def analyze_data(self, df: pd.DataFrame, question: str) -> str:
+        try:
+            # Natural language understanding of the question
+            question = question.lower()
+            context = self._generate_context(df)
+
+            if 'brand' in question or 'company' in question:
+                return self._analyze_business_entities(df, question)
+            elif 'trend' in question or 'over time' in question:
+                return self._analyze_trends(df, question)
+            elif 'predict' in question or 'forecast' in question:
+                return self._generate_predictions(df, question)
+            else:
+                return self._analyze_general(df, question)
+
+        except Exception as e:
+            return f"❌ An error occurred during analysis: {str(e)}"
+
+    def _generate_context(self, df: pd.DataFrame) -> dict:
+        return {
+            'total_rows': len(df),
+            'columns': list(df.columns),
+            'data_types': df.dtypes.to_dict(),
+            'numeric_summary': df.describe().to_dict() if not df.empty else {}
+        }
+
+    def _analyze_business_entities(self, df: pd.DataFrame, question: str) -> str:
+        brand_cols = [col for col in df.columns if any(
+            term in col.lower() for term in ['brand', 'company', 'name']
+        )]
+
+        if not brand_cols:
+            return "No brand or company related columns found in the dataset."
+
+        insights = []
+        for col in brand_cols:
+            top_entities = df[col].value_counts().head(5)
+            market_share = (top_entities / len(df) * 100).round(2)
+
+            insights.append(f"\nTop entities in {col}:")
+            for entity, count in top_entities.items():
+                insights.append(f"• {entity}: {count} occurrences ({market_share[entity]}% share)")
+
+        return "\n".join(insights)
+
+    def _analyze_trends(self, df: pd.DataFrame, question: str) -> str:
+        numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+        insights = []
+
+        for col in numeric_cols:
+            stats = df[col].describe()
+            trend = "increasing" if df[col].corr(pd.Series(range(len(df)))) > 0 else "decreasing"
+
+            insights.append(f"\nAnalysis for {col}:")
+            insights.append(f"• Trend: {trend}")
+            insights.append(f"• Average: {stats['mean']:.2f}")
+            insights.append(f"• Range: {stats['min']:.2f} to {stats['max']:.2f}")
+
+        return "\n".join(insights)
+
+    def _generate_predictions(self, df: pd.DataFrame, question: str) -> str:
+        numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+        predictions = []
+
+        for col in numeric_cols:
+            if df[col].std() > 0:
+                last_value = df[col].iloc[-1]
+                trend = df[col].diff().mean()
+                predicted = last_value + trend
+
+                predictions.append(f"• {col} prediction:")
+                predictions.append(f"  Current value: {last_value:.2f}")
+                predictions.append(f"  Predicted next value: {predicted:.2f}")
+
+        return "\nPredictions based on current trends:\n" + "\n".join(predictions)
+
+    def _analyze_general(self, df: pd.DataFrame, question: str) -> str:
+        summary = []
+
+        numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+        categorical_cols = df.select_dtypes(include=['object']).columns
+
+        summary.append(f"Dataset has {len(df)} rows and {len(df.columns)} columns")
+        summary.append(f"Numeric columns: {', '.join(numeric_cols)}")
+        summary.append(f"Categorical columns: {', '.join(categorical_cols)}")
+
+        if 'average' in question or 'mean' in question:
+            for col in numeric_cols:
+                summary.append(f"Average {col}: {df[col].mean():.2f}")
+        elif 'maximum' in question or 'highest' in question:
+            for col in numeric_cols:
+                summary.append(f"Maximum {col}: {df[col].max():.2f}")
+        elif 'minimum' in question or 'lowest' in question:
+            for col in numeric_cols:
+                summary.append(f"Minimum {col}: {df[col].min():.2f}")
+
+        return "\n".join(summary)
+
+    def suggest_visualizations(self, df: pd.DataFrame) -> str:
+        suggestions = []
+        numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+        categorical_cols = df.select_dtypes(include=['object']).columns
+
+        if len(numeric_cols) >= 2:
+            suggestions.extend([
+                "• Create scatter plots to analyze relationships between numeric variables",
+                "• Use line charts to visualize trends over time",
+                "• Generate box plots to understand data distribution"
+            ])
+
+        if len(categorical_cols) > 0:
+            suggestions.extend([
+                "• Create bar charts to compare categories",
+                "• Use pie charts for composition analysis",
+                "• Generate heat maps to show correlations"
+            ])
+
+        return "\n".join(suggestions)
+
+%%writefile utils/analyzer.py
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from typing import Tuple, Dict, Any
+
+class Analyzer:
+    @staticmethod
+    def calculate_basic_stats(df: pd.DataFrame, column: str) -> Dict[str, Any]:
+        series = df[column]
+        stats = {
+            'mean': series.mean(),
+            'median': series.median(),
+            'std': series.std(),
+            'min': series.min(),
+            'max': series.max()
+        }
+        return stats
+
+    @staticmethod
+    def identify_trends(df: pd.DataFrame, time_col: str, value_col: str) -> Dict[str, Any]:
+        df[time_col] = pd.to_datetime(df[time_col])
+        df = df.sort_values(time_col)
+        
+        # Calculate moving averages
+        ma_7 = df[value_col].rolling(window=7).mean()
+        ma_30 = df[value_col].rolling(window=30).mean()
+        
+        # Calculate overall trend
+        X = np.arange(len(df)).reshape(-1, 1)
+        y = df[value_col].values
+        reg = LinearRegression().fit(X, y)
+        trend = 'Increasing' if reg.coef_[0] > 0 else 'Decreasing'
+        
+        return {
+            'trend': trend,
+            'slope': reg.coef_[0],
+            'ma_7': ma_7.tolist(),
+            'ma_30': ma_30.tolist()
+        }
+
+    @staticmethod
+    def simple_prediction(df: pd.DataFrame, target_col: str, feature_cols: list) -> Tuple[float, dict]:
+        X = df[feature_cols]
+        y = df[target_col]
+        
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        model = LinearRegression()
+        model.fit(X_train, y_train)
+        
+        score = model.score(X_test, y_test)
+        coefficients = dict(zip(feature_cols, model.coef_))
+        
+        return score, coefficients
+
+%%writefile utils/qa_engine.py
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+import pandas as pd
+from typing import Optional
+
+class QAEngine:
+    def __init__(self):
+        # Download required NLTK data
+        try:
+            nltk.data.find('tokenizers/punkt')
+        except LookupError:
+            nltk.download('punkt')
+        try:
+            nltk.data.find('corpora/stopwords')
+        except LookupError:
+            nltk.download('stopwords')
+
+    def process_question(self, question: str, df: pd.DataFrame) -> Optional[str]:
+        # Tokenize the question
+        tokens = word_tokenize(question.lower())
+        stop_words = set(stopwords.words('english'))
+        tokens = [token for token in tokens if token not in stop_words]
+
+        # Check for common question patterns
+        if any(word in tokens for word in ['average', 'mean']):
+            return self._handle_average_question(tokens, df)
+        elif any(word in tokens for word in ['maximum', 'max', 'highest']):
+            return self._handle_max_question(tokens, df)
+        elif any(word in tokens for word in ['minimum', 'min', 'lowest']):
+            return self._handle_min_question(tokens, df)
+        else:
+            return "I'm sorry, I don't understand the question. Try asking about averages, maximums, or minimums of specific columns."
+
+    def _handle_average_question(self, tokens: list, df: pd.DataFrame) -> Optional[str]:
+        for column in df.columns:
+            if column.lower() in tokens:
+                if pd.api.types.is_numeric_dtype(df[column]):
+                    avg = df[column].mean()
+                    return f"The average {column} is {avg:.2f}"
+        return None
+
+    def _handle_max_question(self, tokens: list, df: pd.DataFrame) -> Optional[str]:
+        for column in df.columns:
+            if column.lower() in tokens:
+                max_val = df[column].max()
+                return f"The maximum {column} is {max_val}"
+        return None
+
+    def _handle_min_question(self, tokens: list, df: pd.DataFrame) -> Optional[str]:
+        for column in df.columns:
+            if column.lower() in tokens:
+                min_val = df[column].min()
+                return f"The minimum {column} is {min_val}"
+        return None
+
+%%writefile utils/visualizer.py
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+
+class Visualizer:
+    @staticmethod
+    def create_scatter_plot(df: pd.DataFrame, x_col: str, y_col: str, color_col: str = None):
+        fig = px.scatter(df, x=x_col, y=y_col, color=color_col,
+                        template="plotly_dark",
+                        title=f"Scatter Plot: {x_col} vs {y_col}")
+        fig.update_layout(
+            plot_bgcolor='rgba(30,42,58,0.8)',
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+    @staticmethod
+    def create_line_plot(df: pd.DataFrame, x_col: str, y_col: str):
+        fig = px.line(df, x=x_col, y=y_col,
+                     template="plotly_dark",
+                     title=f"Line Plot: {y_col} over {x_col}")
+        fig.update_layout(
+            plot_bgcolor='rgba(30,42,58,0.8)',
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+    @staticmethod
+    def create_bar_chart(df: pd.DataFrame, x_col: str, y_col: str):
+        fig = px.bar(df, x=x_col, y=y_col,
+                    template="plotly_dark",
+                    title=f"Bar Chart: {y_col} by {x_col}")
+        fig.update_layout(
+            plot_bgcolor='rgba(30,42,58,0.8)',
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+    @staticmethod
+    def create_box_plot(df: pd.DataFrame, x_col: str, y_col: str):
+        fig = px.box(df, x=x_col, y=y_col,
+                    template="plotly_dark",
+                    title=f"Box Plot: Distribution of {y_col} by {x_col}")
+        fig.update_layout(
+            plot_bgcolor='rgba(30,42,58,0.8)',
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+    @staticmethod
+    def create_histogram(df: pd.DataFrame, column: str, bins: int = 30):
+        fig = px.histogram(df, x=column, nbins=bins,
+                          template="plotly_dark",
+                          title=f"Histogram: Distribution of {column}")
+        fig.update_layout(
+            plot_bgcolor='rgba(30,42,58,0.8)',
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+    @staticmethod
+    def create_correlation_heatmap(df: pd.DataFrame):
+        numeric_df = df.select_dtypes(include=[np.number])
+        correlation_matrix = numeric_df.corr()
+
+        fig = go.Figure(data=go.Heatmap(
+            z=correlation_matrix.values,
+            x=correlation_matrix.columns,
+            y=correlation_matrix.columns,
+            colorscale='RdBu'
+        ))
+
+        fig.update_layout(
+            title="Correlation Heatmap",
+            template="plotly_dark",
+            plot_bgcolor='rgba(30,42,58,0.8)',
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+    @staticmethod
+    def create_time_series(df: pd.DataFrame, time_col: str, value_col: str):
+        df = df.sort_values(time_col)
+        fig = px.line(df, x=time_col, y=value_col,
+                     template="plotly_dark",
+                     title=f"Time Series: {value_col} over Time")
+
+        fig.update_layout(
+            plot_bgcolor='rgba(30,42,58,0.8)',
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+    @staticmethod
+    def create_pca_visualization(df: pd.DataFrame, numeric_columns: list):
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(df[numeric_columns])
+        pca = PCA(n_components=2)
+        pca_result = pca.fit_transform(scaled_data)
+        pca_df = pd.DataFrame(data=pca_result, columns=['PC1', 'PC2'])
+        fig = px.scatter(pca_df, x='PC1', y='PC2',
+                        template="plotly_dark",
+                        title="PCA: 2D Projection of Data")
+        fig.update_layout(
+            plot_bgcolor='rgba(30,42,58,0.8)',
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+    @staticmethod
+    def create_cluster_visualization(df: pd.DataFrame, numeric_columns: list, n_clusters: int = 3):
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(df[numeric_columns])
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        clusters = kmeans.fit_predict(scaled_data)
+        pca = PCA(n_components=2)
+        pca_result = pca.fit_transform(scaled_data)
+        cluster_df = pd.DataFrame(data=pca_result, columns=['PC1', 'PC2'])
+        cluster_df['Cluster'] = clusters
+        fig = px.scatter(cluster_df, x='PC1', y='PC2', color='Cluster',
+                        template="plotly_dark",
+                        title=f"K-means Clustering ({n_clusters} clusters)")
+        fig.update_layout(
+            plot_bgcolor='rgba(30,42,58,0.8)',
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+    @staticmethod
+    def create_3d_scatter(df: pd.DataFrame, x_col: str, y_col: str, z_col: str, color_col: str = None):
+        fig = px.scatter_3d(df, x=x_col, y=y_col, z=z_col, color=color_col,
+                           template="plotly_dark",
+                           title=f"3D Scatter Plot: {x_col}, {y_col}, {z_col}")
+        fig.update_layout(
+            scene=dict(
+                xaxis_title=x_col,
+                yaxis_title=y_col,
+                zaxis_title=z_col,
+                bgcolor='rgba(30,42,58,0.8)'
+            ),
+            paper_bgcolor='rgba(30,42,58,0.8)',
+            font_color='white'
+        )
+        return fig
+
+%%writefile app.py
+import streamlit as st
+import pandas as pd
+from utils.data_processor import DataProcessor
+from utils.visualizer import Visualizer
+from utils.analyzer import Analyzer
+from utils.ai_engine import AIEngine
+import numpy as np
+
+# Page configuration
+st.set_page_config(
+    page_title="Data Analytics App",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS
+st.markdown("""
+    <style>
+    .main {
+        background: linear-gradient(135deg, #0E1117 0%, #1E2A3A 100%);
+    }
+    .stTitle {
+        font-size: 3rem !important;
+        text-align: center;
+        background: linear-gradient(45deg, #4A90E2, #63B3ED);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        padding: 1rem 0;
+    }
+    .stSubheader {
+        color: #4A90E2 !important;
+    }
+    .data-container {
+        background-color: rgba(74, 144, 226, 0.1);
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Title and description
+st.title("Data Analytics App")
+st.markdown("""
+<div class='data-container'>
+<h3 style='color: #4A90E2; margin-bottom: 1rem;'>Welcome to Your Advanced Analytics Platform</h3>
+<p>Upload your data file (CSV or Excel) to unlock powerful insights:</p>
+<ul>
+<li>📊 Advanced Data Visualization</li>
+<li>📈 Comprehensive Statistical Analysis</li>
+<li>🔍 Pattern & Trend Discovery</li>
+<li>🤖 AI-Powered Data Analysis</li>
+<li>🎯 Predictive Analytics & Clustering</li>
+<li>❓ Intelligent Q&A Interface</li>
+</ul>
+</div>
+""", unsafe_allow_html=True)
+
+# Initialize session state
+if 'df' not in st.session_state:
+    st.session_state.df = None
+if 'ai_engine' not in st.session_state:
+    st.session_state.ai_engine = AIEngine()
+
+# File upload with enhanced UI
+uploaded_file = st.file_uploader(
+    "Choose your data file (CSV or Excel)",
+    type=['csv', 'xlsx', 'xls'],
+    help="Upload your CSV or Excel file to begin analysis"
+)
+
+if uploaded_file is not None:
+    try:
+        # Load and process data
+        df = DataProcessor.load_data(uploaded_file)
+
+        if df is not None:
+            st.session_state.df = DataProcessor.clean_data(df)
+
+            # Data Overview with enhanced styling
+            st.header("📋 Dataset Overview")
+
+            with st.expander("View Dataset Preview", expanded=True):
+                st.markdown("<div class='data-container'>", unsafe_allow_html=True)
+                st.dataframe(
+                    st.session_state.df.head(),
+                    use_container_width=True,
+                    height=300
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown("<div class='data-container'>", unsafe_allow_html=True)
+                st.metric("Total Rows", f"{len(st.session_state.df):,}")
+                st.metric("Total Columns", len(st.session_state.df.columns))
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            with col2:
+                st.markdown("<div class='data-container'>", unsafe_allow_html=True)
+                st.write("Numeric Columns:")
+                st.write(st.session_state.df.select_dtypes(include=[np.number]).columns.tolist())
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            with col3:
+                st.markdown("<div class='data-container'>", unsafe_allow_html=True)
+                st.write("Data Types:")
+                st.write(st.session_state.df.dtypes)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            # Visualization Section
+            st.header("📈 Data Visualization")
+
+            viz_type = st.selectbox(
+                "Select visualization type",
+                ["Scatter Plot", "Line Plot", "Bar Chart", "Box Plot", "Histogram",
+                 "Correlation Heatmap", "Time Series", "3D Scatter Plot",
+                 "PCA Visualization", "Cluster Analysis"]
+            )
+
+            numeric_columns = st.session_state.df.select_dtypes(include=['float64', 'int64']).columns
+
+            if viz_type == "Scatter Plot":
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    x_col = st.selectbox("Select X-axis column", st.session_state.df.columns)
+                with col2:
+                    y_col = st.selectbox("Select Y-axis column", numeric_columns)
+                with col3:
+                    color_col = st.selectbox("Select color column (optional)", 
+                                           ['None'] + list(st.session_state.df.columns))
+
+                color_col = None if color_col == 'None' else color_col
+                fig = Visualizer.create_scatter_plot(st.session_state.df, x_col, y_col, color_col)
+                st.plotly_chart(fig, use_container_width=True)
+
+            elif viz_type == "3D Scatter Plot":
+                if len(numeric_columns) >= 3:
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        x_col = st.selectbox("Select X-axis column", numeric_columns)
+                    with col2:
+                        y_col = st.selectbox("Select Y-axis column", numeric_columns)
+                    with col3:
+                        z_col = st.selectbox("Select Z-axis column", numeric_columns)
+                    with col4:
+                        color_col = st.selectbox("Select color column (optional)",
+                                               ['None'] + list(st.session_state.df.columns))
+
+                    color_col = None if color_col == 'None' else color_col
+                    fig = Visualizer.create_3d_scatter(st.session_state.df, x_col, y_col, z_col, color_col)
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.warning("Need at least 3 numeric columns for 3D visualization")
+
+            elif viz_type == "PCA Visualization":
+                if len(numeric_columns) >= 2:
+                    selected_cols = st.multiselect("Select columns for PCA",
+                                                 numeric_columns,
+                                                 default=list(numeric_columns[:4]))
+                    if len(selected_cols) >= 2:
+                        fig = Visualizer.create_pca_visualization(st.session_state.df, selected_cols)
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.warning("Please select at least 2 columns")
+                else:
+                    st.warning("Need at least 2 numeric columns for PCA")
+
+            elif viz_type == "Cluster Analysis":
+                if len(numeric_columns) >= 2:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        selected_cols = st.multiselect("Select columns for clustering",
+                                                     numeric_columns,
+                                                     default=list(numeric_columns[:4]))
+                    with col2:
+                        n_clusters = st.slider("Number of clusters", 2, 10, 3)
+
+                    if len(selected_cols) >= 2:
+                        fig = Visualizer.create_cluster_visualization(st.session_state.df,
+                                                                    selected_cols,
+                                                                    n_clusters)
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.warning("Please select at least 2 columns")
+                else:
+                    st.warning("Need at least 2 numeric columns for clustering")
+
+            elif viz_type == "Box Plot":
+                col1, col2 = st.columns(2)
+                with col1:
+                    x_col = st.selectbox("Select category column", st.session_state.df.columns)
+                with col2:
+                    y_col = st.selectbox("Select value column", numeric

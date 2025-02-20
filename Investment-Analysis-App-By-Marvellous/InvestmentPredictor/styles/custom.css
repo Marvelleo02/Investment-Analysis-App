@@ -1,0 +1,116 @@
+
+:root {
+    --background-color: #0a192f;
+    --text-color: #e6f1ff;
+    --accent-color: #1e88e5;
+    --error-color: #ff4b4b;
+    --success-color: #00cf86;
+}
+
+.stApp {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
+}
+
+.stButton > button {
+    background-color: var(--accent-color);
+    color: white;
+    border-radius: 8px;
+    border: none;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.stButton > button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.metric-card {
+    background: rgba(30, 136, 229, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid rgba(30, 136, 229, 0.2);
+}
+
+.chart-container {
+    background: rgba(30, 136, 229, 0.05);
+    border-radius: 12px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    background-color: transparent;
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 4px;
+    color: var(--text-color);
+    background-color: rgba(30, 136, 229, 0.1);
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: var(--accent-color) !important;
+}
+
+.stSelectbox {
+    background-color: rgba(30, 136, 229, 0.1);
+    border-radius: 8px;
+}
+
+div.stPlotlyChart {
+    background-color: rgba(30, 136, 229, 0.05);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 1rem 0;
+}
+
+.dataframe {
+    background-color: rgba(30, 136, 229, 0.05) !important;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.stExpander {
+    background-color: rgba(30, 136, 229, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(30, 136, 229, 0.2);
+}
+
+.element-container {
+    margin-bottom: 1.5rem;
+}
+
+div[data-testid="stMetricValue"] {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+div[data-testid="stHeader"] {
+    background-color: var(--background-color);
+    padding: 1rem 0;
+}
+
+.stProgress .st-eb {
+    background-color: var(--accent-color);
+}
+
+.stSidebar {
+    background-color: rgba(30, 136, 229, 0.05);
+    padding: 1.5rem;
+}
+
+.stSidebar [data-testid="stMarkdownContainer"] h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.st-emotion-cache-1r6slb0 {
+    gap: 2rem;
+}

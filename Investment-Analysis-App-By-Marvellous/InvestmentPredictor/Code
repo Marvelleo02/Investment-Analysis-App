@@ -1,0 +1,739 @@
+# Install required packages
+!pip install streamlit pandas numpy plotly yfinance scikit-learn statsmodels arch
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+import yfinance as yf
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from statsmodels.tsa.arima.model import ARIMA
+from arch import arch_model
+from scipy.stats import norm
+from sklearn.ensemble import RandomForestRegressor
+import warnings
+warnings.filterwarnings('ignore')
+
+# Custom CSS
+custom_css = """
+.stApp {
+    background-color: #0A192F;
+}
+.stButton button {
+    background-color: #1E88E5;
+    color: white;
+    border-radius: 5px;
+    padding: 0.5rem 1rem;
+}
+.stSelectbox {
+    background-color: #172A45;
+}
+div.stPlotlyChart {
+    background-color: #172A45;
+    padding: 1rem;
+    border-radius: 10px;
+}
+.dataframe {
+    background-color: #172A45 !important;
+}
+"""
+
+# Data Processing Functions
+def get_demo_data(symbol, period='1y'):
+    try:
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=730)
+        dates = pd.date_range(start=start_date, end=end_date, freq='B')
+        
+        np.random.seed(hash(symbol) % 2**32)
+        base_price = 100 + np.random.rand() * 200
+        trend = np.random.choice([-1, 1]) * np.random.uniform(0.0001, 0.0003)
+        volatility = np.random.uniform(0.01, 0.02)
+        
+        t = np.linspace(0, len(dates)/252, len(dates))
+        seasonal = 0.1 * np.sin(2 * np.pi * t) + 0.05 * np.sin(4 * np.pi * t)
+        returns = np.random.normal(trend, volatility, len(dates)) + seasonal/252
+        price_path = base_price * np.exp(np.cumsum(returns))
+        
+        daily_volatility = np.random.uniform(0.005, 0.015, len(dates))
+        high = price_path * (1 + daily_volatility)
+        low = price_path * (1 - daily_volatility)
+        volume = np.random.lognormal(15, 0.5, len(dates))
+        
+        df = pd.DataFrame({
+            'Open': price_path,
+            'High': high,
+            'Low': low,
+            'Close': price_path,
+            'Volume': volume
+        }, index=dates)
+        
+        return df.sort_index()
+    except Exception as e:
+        st.error(f"Error generating demo data for {symbol}: {str(e)}")
+        return None
+
+@st.cache_data(ttl=3600)
+def get_stock_data(symbol, period='1y', use_demo=True):
+    try:
+        if use_demo:
+            return get_demo_data(symbol, period)
+        
+        stock = yf.Ticker(symbol)
+        df = stock.history(period=period)
+        if not df.empty:
+            return df
+        return get_demo_data(symbol, period)
+    except Exception as e:
+        st.error(f"Error fetching data for {symbol}: {str(e)}")
+        return None
+
+def calculate_technical_indicators(df):
+    try:
+        if df is None or df.empty or len(df) < 50:
+            return None
+
+        df = df.copy()
+        df = df.sort_index()
+
+        # Moving Averages
+        df['SMA_20'] = df['Close'].rolling(window=20, min_periods=20).mean()
+        df['SMA_50'] = df['Close'].rolling(window=50, min_periods=50).mean()
+        df['SMA_200'] = df['Close'].rolling(window=200, min_periods=200).mean()
+
+        # Bollinger Bands
+        df['BB_middle'] = df['Close'].rolling(window=20, min_periods=20).mean()
+        bb_std = df['Close'].rolling(window=20, min_periods=20).std()
+        df['BB_upper'] = df['BB_middle'] + 2 * bb_std
+        df['BB_lower'] = df['BB_middle'] - 2 * bb_std
+
+        # RSI
+        delta = df['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14, min_periods=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14, min_periods=14).mean()
+        rs = gain / loss
+        df['RSI'] = 100 - (100 / (1 + rs))
+
+        df = df.dropna()
+        return df
+
+    except Exception as e:
+        st.error(f"Error calculating technical indicators: {str(e)}")
+        return None
+
+# Prediction Functions
+def create_features(df):
+    if df is None or df.empty:
+        return None
+
+    try:
+        window_short = min(20, len(df) // 4)
+        window_long = min(50, len(df) // 2)
+        df = df.copy()
+
+        df['SMA_20'] = df['Close'].rolling(window=window_short, min_periods=1).mean()
+        df['SMA_50'] = df['Close'].rolling(window=window_long, min_periods=1).mean()
+        df['Volatility'] = df['Close'].pct_change().rolling(window=20).std()
+
+        delta = df['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        df['RSI'] = 100 - (100 / (1 + rs))
+
+        exp1 = df['Close'].ewm(span=12, adjust=False).mean()
+        exp2 = df['Close'].ewm(span=26, adjust=False).mean()
+        df['MACD'] = exp1 - exp2
+
+        return df
+    except Exception as e:
+        print(f"Error creating features: {str(e)}")
+        return None
+
+def fit_arima(data):
+    try:
+        model = ARIMA(data, order=(5,1,2))
+        return model.fit()
+    except:
+        return None
+
+def fit_garch(returns):
+    try:
+        model = arch_model(returns, vol='Garch', p=1, q=1)
+        return model.fit(disp='off')
+    except:
+        return None
+
+def black_scholes_prediction(S, r, sigma, T):
+    try:
+        d1 = (np.log(S) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        return S * norm.cdf(d1)
+    except:
+        return None
+
+def prepare_data(df):
+    if df is None or df.empty:
+        return None, None, None
+
+    df_features = create_features(df)
+    if df_features is None:
+        return None, None, None
+
+    df_features = df_features.dropna()
+    if df_features.empty:
+        return None, None, None
+
+    features = ['SMA_20', 'SMA_50', 'RSI', 'MACD', 'Volatility']
+    X = df_features[features]
+    y = df_features['Close']
+
+    try:
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        return X_scaled, y, scaler
+    except Exception as e:
+        print(f"Error in data preparation: {str(e)}")
+        return None, None, None
+
+def train_prediction_model(df):
+    if df is None or df.empty:
+        return None, None
+        
+    try:
+        X_scaled, y, scaler = prepare_data(df)
+        if X_scaled is None or y is None:
+            return None, None
+            
+        model = RandomForestRegressor(n_estimators=100, random_state=42)
+        model.fit(X_scaled, y)
+        
+        return model, scaler
+    except Exception as e:
+        print(f"Error training model: {str(e)}")
+        return None, None
+
+def predict_future_prices(df, days_ahead, model, scaler):
+    if df is None or df.empty:
+        return None
+
+    try:
+        predictions = []
+        current_data = df.tail(50).copy()
+        returns = df['Close'].pct_change().dropna()
+        
+        arima_model = fit_arima(df['Close'])
+        garch_model = fit_garch(returns)
+        
+        current_price = df['Close'].iloc[-1]
+        current_vol = returns.std()
+        
+        for i in range(days_ahead):
+            features = create_features(current_data)
+            if features is None:
+                continue
+                
+            feature_names = ['SMA_20', 'SMA_50', 'RSI', 'MACD', 'Volatility']
+            last_features = features[feature_names].iloc[-1:]
+            
+            if last_features.isnull().any().any():
+                continue
+                
+            scaled_features = scaler.transform(last_features)
+            base_pred = model.predict(scaled_features)[0]
+            
+            arima_pred = arima_model.forecast()[0] if arima_model else base_pred
+            
+            if garch_model:
+                garch_forecast = garch_model.forecast(horizon=1)
+                vol_forecast = np.sqrt(garch_forecast.variance.values[-1][0])
+            else:
+                vol_forecast = current_vol
+            
+            bs_pred = black_scholes_prediction(current_price, 0.02, vol_forecast, 1/252)
+            if bs_pred is None:
+                bs_pred = base_pred
+            
+            prediction = 0.4 * base_pred + 0.3 * arima_pred + 0.3 * bs_pred
+            predictions.append(prediction)
+            
+            new_row = current_data.iloc[-1:].copy()
+            new_row.index = [new_row.index[-1] + pd.Timedelta(days=1)]
+            new_row['Close'] = prediction
+            current_data = pd.concat([current_data, new_row])
+
+        return predictions
+    except Exception as e:
+        print(f"Error predicting prices: {str(e)}")
+        return None
+
+# Portfolio Analysis Functions
+def calculate_portfolio_metrics(symbols, weights, investment_amount, use_demo=True):
+    try:
+        if not symbols or not weights or len(symbols) != len(weights):
+            st.error("Invalid portfolio parameters")
+            return None, None, None
+
+        if not np.isclose(sum(weights), 1.0, rtol=1e-5):
+            st.error("Portfolio weights must sum to 1.0")
+            return None, None, None
+
+        portfolio_data = {}
+        full_data = {}
+
+        for symbol in symbols:
+            df = get_stock_data(symbol, use_demo=use_demo)
+            if df is not None and not df.empty:
+                portfolio_data[symbol] = df['Close']
+                full_data[symbol] = calculate_technical_indicators(df)
+            else:
+                st.error(f"Could not process data for {symbol}")
+                return None, None, None
+
+        portfolio = pd.DataFrame(portfolio_data)
+        if portfolio.empty:
+            st.error("No valid data available for portfolio construction")
+            return None, None, None
+
+        returns = portfolio.pct_change()
+        returns = returns.dropna()
+
+        if returns.empty:
+            st.error("Unable to calculate returns from the data")
+            return None, None, None
+
+        weights = np.array(weights)
+        daily_returns = returns.dot(weights)
+
+        if len(daily_returns) == 0:
+            st.error("No valid returns available for calculation")
+            return None, None, None
+
+        portfolio_return = np.mean(daily_returns) * 252
+        portfolio_std = np.std(daily_returns) * np.sqrt(252)
+        sharpe_ratio = portfolio_return / portfolio_std if portfolio_std != 0 else 0
+
+        max_drawdown = calculate_max_drawdown(daily_returns)
+        value_at_risk = calculate_value_at_risk(daily_returns, investment_amount)
+
+        metrics = {
+            'Expected Annual Return': portfolio_return,
+            'Annual Volatility': portfolio_std,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': max_drawdown,
+            'Value at Risk (95%)': value_at_risk,
+            'Investment Value': investment_amount * (1 + portfolio_return)
+        }
+
+        return metrics, portfolio, full_data
+
+    except Exception as e:
+        st.error(f"Error calculating portfolio metrics: {str(e)}")
+        return None, None, None
+
+def calculate_max_drawdown(returns):
+    try:
+        if len(returns) == 0:
+            return 0
+
+        cumulative = (1 + returns).cumprod()
+        rolling_max = cumulative.expanding().max()
+        drawdowns = cumulative / rolling_max - 1
+        return float(drawdowns.min())
+    except Exception as e:
+        st.error(f"Error calculating max drawdown: {str(e)}")
+        return 0
+
+def calculate_value_at_risk(returns, investment):
+    try:
+        if len(returns) == 0:
+            return 0
+
+        return float(np.percentile(returns, 5) * investment)
+    except Exception as e:
+        st.error(f"Error calculating VaR: {str(e)}")
+        return 0
+
+# Storytelling Functions
+def generate_portfolio_story(metrics, stocks, weights, full_data, prediction_results):
+    story = []
+    
+    total_stocks = len(stocks)
+    top_stock = max(zip(stocks, weights), key=lambda x: x[1])
+    
+    story.append({
+        'section': 'Portfolio Overview',
+        'title': 'Your Investment Strategy',
+        'content': f"""Your diversified portfolio consists of {total_stocks} carefully selected stocks, 
+        with {top_stock[0]} being your highest conviction pick at {top_stock[1]*100:.1f}% allocation."""
+    })
+    
+    annual_return = metrics.get('Expected Annual Return', 0)
+    volatility = metrics.get('Annual Volatility', 0)
+    sharpe = metrics.get('Sharpe Ratio', 0)
+    
+    performance_narrative = f"""Your portfolio has demonstrated {
+        'strong' if annual_return > 0.15 else 'moderate' if annual_return > 0 else 'challenging'
+    } performance with an expected annual return of {annual_return:.1%}. """
+    
+    risk_narrative = f"""The portfolio's volatility is {
+        'high' if volatility > 0.25 else 'moderate' if volatility > 0.15 else 'low'
+    } at {volatility:.1%}, resulting in a Sharpe ratio of {sharpe:.2f}, which indicates {
+        'excellent' if sharpe > 2 else 'good' if sharpe > 1 else 'moderate' if sharpe > 0 else 'challenging'
+    } risk-adjusted returns."""
+    
+    story.append({
+        'section': 'Performance Analysis',
+        'title': 'Performance and Risk Profile',
+        'content': performance_narrative + risk_narrative
+    })
+    
+    tech_insights = []
+    for stock in stocks:
+        if stock in full_data:
+            data = full_data[stock]
+            latest_rsi = data['RSI'].iloc[-1]
+            latest_price = data['Close'].iloc[-1]
+            sma_50 = data['SMA_50'].iloc[-1]
+            
+            rsi_status = (
+                'potentially overbought' if latest_rsi > 70
+                else 'potentially oversold' if latest_rsi < 30
+                else 'neutral'
+            )
+            
+            trend_status = 'above' if latest_price > sma_50 else 'below'
+            
+            tech_insights.append(
+                f"{stock} is currently {rsi_status} with RSI at {latest_rsi:.0f}, "
+                f"and trading {trend_status} its 50-day moving average."
+            )
+    
+    story.append({
+        'section': 'Technical Insights',
+        'title': 'Technical Analysis Summary',
+        'content': ' '.join(tech_insights)
+    })
+    
+    if prediction_results:
+        positive_predictions = sum(1 for result in prediction_results 
+                                 if float(result['Predicted Return'].strip('%'))/100 > 0)
+        total_predictions = len(prediction_results)
+        
+        outlook = (
+            'strongly positive' if positive_predictions == total_predictions
+            else 'generally positive' if positive_predictions > total_predictions/2
+            else 'mixed' if positive_predictions == total_predictions/2
+            else 'challenging'
+        )
+        
+        story.append({
+            'section': 'Future Outlook',
+            'title': 'Forward-Looking Analysis',
+            'content': f"""Based on our predictive models, the outlook for your portfolio appears {outlook}, 
+            with {positive_predictions} out of {total_predictions} stocks showing potential upside."""
+        })
+    
+    return story
+
+def generate_action_items(metrics, prediction_results):
+    actions = []
+    
+    sharpe = metrics.get('Sharpe Ratio', 0)
+    if sharpe < 1:
+        actions.append({
+            'type': 'warning',
+            'title': 'Risk Management',
+            'content': 'Consider rebalancing your portfolio to improve risk-adjusted returns.'
+        })
+    
+    if prediction_results:
+        for result in prediction_results:
+            return_pct = float(result['Predicted Return'].strip('%'))/100
+            if abs(return_pct) > 0.1:
+                action_type = 'positive' if return_pct > 0 else 'warning'
+                actions.append({
+                    'type': action_type,
+                    'title': f'Price Movement Alert - {result["Stock"]}',
+                    'content': f"""Significant {'upside' if return_pct > 0 else 'downside'} 
+                    potential detected for {result['Stock']}. Consider {'increasing' if return_pct > 0 else 'reducing'} 
+                    position if aligned with your strategy."""
+                })
+    
+    return actions
+
+# Main Application
+st.set_page_config(page_title="Investment Analysis Tool", layout="wide")
+st.markdown(custom_css, unsafe_allow_html=True)
+st.title("Investment Analysis Tool")
+st.markdown("---")
+
+# Sidebar
+st.sidebar.header("Portfolio Settings")
+use_demo = st.sidebar.checkbox("Use Demo Data", value=True)
+
+available_stocks = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'META', 'TSLA', 'BRK-B', 'JPM', 'JNJ', 'V']
+currencies = ['USD', 'EUR', 'GBP', 'JPY']
+
+selected_stocks = st.sidebar.multiselect("Select Stocks", available_stocks, default=['AAPL', 'MSFT'])
+
+# Dynamic weight inputs
+weights = []
+if selected_stocks:
+    st.sidebar.subheader("Portfolio Weights")
+    remaining_weight = 100
+    for i, stock in enumerate(selected_stocks[:-1]):
+        weight = st.sidebar.slider(
+            f"{stock} Weight (%)",
+            0,
+            remaining_weight,
+            value=100 // len(selected_stocks),
+            key=f"weight_{stock}"
+        )
+        weights.append(weight / 100)
+        remaining_weight -= weight
+
+    weights.append(remaining_weight / 100)
+    st.sidebar.text(f"{selected_stocks[-1]} Weight: {remaining_weight}%")
+
+investment_amount = st.sidebar.number_input(
+    "Investment Amount",
+    min_value=1000,
+    value=10000,
+    key="investment_amount"
+)
+
+investment_currency = st.sidebar.selectbox(
+    "Investment Currency",
+    currencies,
+    index=0,
+    key="investment_currency"
+)
+
+investment_duration = st.sidebar.slider(
+    "Investment Duration (Days)",
+    min_value=30,
+    max_value=365,
+    value=180,
+    key="investment_duration"
+)
+
+# Main content
+if selected_stocks and weights:
+    with st.spinner('Analyzing portfolio and generating predictions...'):
+        try:
+            metrics, portfolio_data, full_data = calculate_portfolio_metrics(
+                selected_stocks,
+                weights,
+                investment_amount,
+                use_demo=use_demo
+            )
+
+            if metrics and portfolio_data is not None:
+                # Portfolio Analysis Section
+                st.header("Portfolio Analysis")
+                col1, col2 = st.columns(2)
+
+                # Portfolio Metrics
+                with col1:
+                    st.subheader("Portfolio Metrics")
+                    metrics_df = pd.DataFrame({
+                        'Metric': metrics.keys(),
+                        'Value': [f"{v:.2%}" if k != 'Investment Value' and k != 'Value at Risk (95%)' 
+                                 else f"${abs(v):,.2f}" for k, v in metrics.items()]
+                    })
+                    st.table(metrics_df)
+
+                # Portfolio Performance Chart
+                with col2:
+                    st.subheader("Portfolio Performance")
+                    fig = go.Figure()
+                    for stock in selected_stocks:
+                        if stock in portfolio_data.columns:
+                            fig.add_trace(go.Scatter(
+                                x=portfolio_data.index,
+                                y=portfolio_data[stock],
+                                name=stock
+                            ))
+                    fig.update_layout(
+                        template='plotly_dark',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        height=400
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # Technical Analysis Section
+                st.header("Technical Analysis")
+                for stock in selected_stocks:
+                    if stock in full_data:
+                        stock_data = full_data[stock]
+
+                        # Price with Moving Averages
+                        fig1 = go.Figure()
+                        fig1.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Close'], name='Price'))
+                        fig1.add_trace(go.Scatter(x=stock_data.index, y=stock_data['SMA_20'], name='SMA 20'))
+                        fig1.add_trace(go.Scatter(x=stock_data.index, y=stock_data['SMA_50'], name='SMA 50'))
+                        fig1.add_trace(go.Scatter(x=stock_data.index, y=stock_data['SMA_200'], name='SMA 200'))
+                        fig1.update_layout(
+                            title=f"{stock} - Moving Averages",
+                            template='plotly_dark',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            height=400
+                        )
+                        st.plotly_chart(fig1, use_container_width=True)
+
+                        # Bollinger Bands
+                        fig2 = go.Figure()
+                        fig2.add_trace(go.Scatter(x=stock_data.index, y=stock_data['BB_upper'], name='Upper Band'))
+                        fig2.add_trace(go.Scatter(x=stock_data.index, y=stock_data['BB_middle'], name='Middle Band'))
+                        fig2.add_trace(go.Scatter(x=stock_data.index, y=stock_data['BB_lower'], name='Lower Band'))
+                        fig2.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Close'], name='Price'))
+                        fig2.update_layout(
+                            title=f"{stock} - Bollinger Bands",
+                            template='plotly_dark',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            height=400
+                        )
+                        st.plotly_chart(fig2, use_container_width=True)
+
+                        # RSI
+                        fig3 = go.Figure()
+                        fig3.add_trace(go.Scatter(x=stock_data.index, y=stock_data['RSI'], name='RSI'))
+                        fig3.add_hline(y=70, line_dash="dash", line_color="red")
+                        fig3.add_hline(y=30, line_dash="dash", line_color="green")
+                        fig3.update_layout(
+                            title=f"{stock} - Relative Strength Index",
+                            template='plotly_dark',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            height=400
+                        )
+                        st.plotly_chart(fig3, use_container_width=True)
+
+                # Prediction Analysis
+                st.header("Price Predictions")
+                prediction_results = []
+                for stock in selected_stocks:
+                    stock_data = full_data.get(stock)
+                    if stock_data is not None:
+                        model, scaler = train_prediction_model(stock_data)
+                        if model and scaler:
+                            predictions = predict_future_prices(stock_data, investment_duration, model, scaler)
+
+                            if predictions:
+                                # Prediction Chart
+                                fig = go.Figure()
+                                fig.add_trace(go.Scatter(
+                                    x=stock_data.index,
+                                    y=stock_data['Close'],
+                                    name='Historical'
+                                ))
+
+                                future_dates = [stock_data.index[-1] + timedelta(days=x)
+                                              for x in range(1, len(predictions) + 1)]
+                                fig.add_trace(go.Scatter(
+                                    x=future_dates,
+                                    y=predictions,
+                                    name='Predicted',
+                                    line=dict(dash='dash')
+                                ))
+
+                                fig.update_layout(
+                                    title=f"{stock} - Price Prediction",
+                                    template='plotly_dark',
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    plot_bgcolor='rgba(0,0,0,0)',
+                                    height=400
+                                )
+                                st.plotly_chart(fig, use_container_width=True)
+
+                                # Calculate prediction metrics
+                                current_price = stock_data['Close'].iloc[-1]
+                                predicted_price = predictions[-1]
+                                predicted_return = (predicted_price - current_price) / current_price
+                                predicted_value = investment_amount * weights[selected_stocks.index(stock)] * (1 + predicted_return)
+
+                                prediction_results.append({
+                                    'Stock': stock,
+                                    'Current Price': f"${current_price:.2f}",
+                                    'Predicted Price': f"${predicted_price:.2f}",
+                                    'Predicted Return': f"{predicted_return:.2%}",
+                                    'Predicted Value': f"${predicted_value:.2f}",
+                                    'Status': '📈 Profit' if predicted_return > 0 else '📉 Loss'
+                                })
+
+                # Prediction Summary Table
+                if prediction_results:
+                    st.subheader("Prediction Summary")
+                    pred_df = pd.DataFrame(prediction_results)
+                    st.table(pred_df)
+
+                    # Final Portfolio Prediction
+                    total_predicted_value = sum([float(result['Predicted Value'].replace('$', '').replace(',', ''))
+                                               for result in prediction_results])
+                    total_return = (total_predicted_value - investment_amount) / investment_amount
+
+                    st.metric(
+                        "Predicted Portfolio Value",
+                        f"${total_predicted_value:,.2f}",
+                        f"{total_return:+.2%}",
+                        delta_color="normal"
+                    )
+
+                    st.subheader("Final Analysis")
+                    if total_return > 0:
+                        st.success(f"📈 Projected Profit: ${total_predicted_value - investment_amount:,.2f}")
+                    else:
+                        st.error(f"📉 Projected Loss: ${total_predicted_value - investment_amount:,.2f}")
+
+                # Investment Storytelling Dashboard
+                st.header("📈 Your Investment Story")
+
+                # Generate narrative content
+                if prediction_results:
+                    story = generate_portfolio_story(
+                        metrics, selected_stocks, weights,
+                        full_data, prediction_results
+                    )
+                    actions = generate_action_items(metrics, prediction_results)
+
+                    # Display narrative sections
+                    for section in story:
+                        with st.expander(f"📊 {section['title']}", expanded=True):
+                            st.write(section['content'])
+
+                    # Display action items
+                    if actions:
+                        st.subheader("💡 Recommended Actions")
+                        for action in actions:
+                            if action['type'] == 'positive':
+                                st.success(f"**{action['title']}**\n\n{action['content']}")
+                            elif action['type'] == 'warning':
+                                st.warning(f"**{action['title']}**\n\n{action['content']}")
+                            else:
+                                st.info(f"**{action['title']}**\n\n{action['content']}")
+
+                    # Add interaction hints
+                    st.info("""
+                        💡 **Tips:**
+                        - Expand each section to dive deeper into your portfolio analysis
+                        - Review recommended actions for potential portfolio adjustments
+                        - Toggle between stocks to see detailed technical insights
+                    """)
+
+                if use_demo:
+                    st.info("Currently using demo data. Toggle 'Use Demo Data' in the sidebar to switch to live market data.")
+            else:
+                st.error("Unable to calculate portfolio metrics. Please try different stocks or check your settings.")
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
+else:
+    st.warning("Please select at least one stock to analyze.")
+
+# Run the app
+if __name__ == '__main__':
+    !streamlit run app.py & npx localtunnel --port 8501

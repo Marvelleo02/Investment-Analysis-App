@@ -1,0 +1,770 @@
+Price Predictions
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+ARIMA prediction failed: 0
+
+Prediction Summary
+ 
+
+Stock
+
+Current Price
+
+Predicted Price
+
+Predicted Return
+
+Predicted Value
+
+Status
+
+0
+
+AAPL
+
+$244.47
+
+$241.90
+
+-1.05%
+
+$4947.51
+
+📉 Loss
+
+1
+
+MSFT
+
+$409.64
+
+$431.77
+
+5.40%
+
+$5270.14
+
+📈 Profit
+
+Predicted Portfolio Value
+
+$10,217.65
++2.18%
+Final Analysis
+📈 Projected Profit: $217.65

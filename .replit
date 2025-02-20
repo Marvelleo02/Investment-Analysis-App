@@ -1,0 +1,54 @@
+modules = ["python-3.11"]
+
+[nix]
+channel = "stable-24_05"
+
+[workflows]
+runButton = "Streamlit App"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run Investment-Analysis-App-By-Marvellous/InvestmentPredictor/main.py --server.address=0.0.0.0 --server.port=3000"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Streamlit App"
+
+[[workflows.workflow]]
+name = "Streamlit App"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Investment-Analysis-App-By-Marvellous/InvestmentPredictor && streamlit run main.py --server.address=0.0.0.0 --server.port=8080"
+waitForPort = 3000
+
+[deployment]
+run = ["sh", "-c", "cd Investment-Analysis-App-By-Marvellous/InvestmentPredictor && streamlit run main.py --server.address=0.0.0.0 --server.port=8080"]
+
+[[ports]]
+localPort = 8080
+externalPort = 80
+
+[unitTest]
+language = "python3"
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix"]
